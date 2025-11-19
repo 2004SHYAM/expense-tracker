@@ -17,7 +17,9 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
+
+@CrossOrigin(origins = "*")
+
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -62,7 +64,8 @@ public class AuthController {
     // 2️⃣ LOGIN USER
     // ============================================================
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody Map<String, String> request) {
+public ResponseEntity<?> loginUser(@RequestBody Map<String, String> request) {
+    try {
         String email = request.get("email");
         String password = request.get("password");
 
@@ -76,9 +79,26 @@ public class AuthController {
         }
 
         User user = userOpt.get();
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             return ResponseEntity.status(401).body("Invalid email or password");
         }
+
+        // -------- SAFE NAME GENERATION ----------
+        if (user.getFirstName() == null || user.getFirstName().isBlank()) {
+
+            String emailVal = user.getEmail();
+            String emailPart = "User";
+
+            if (emailVal != null && emailVal.contains("@")) {
+                emailPart = emailVal.substring(0, emailVal.indexOf("@"));
+            }
+
+            user.setFirstName(emailPart);
+            user.setLastName("");
+            userRepository.save(user);
+        }
+        // -----------------------------------------
 
         String token = jwtService.generateToken(email);
 
@@ -87,12 +107,19 @@ public class AuthController {
         response.put("token", token);
         response.put("userId", user.getId());
         response.put("email", user.getEmail());
+        response.put("fullName", user.getFullName());
 
         return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+        e.printStackTrace(); // prints the real error in console
+        return ResponseEntity.status(500).body("Login failed: " + e.getMessage());
     }
+}
+
 
     // ============================================================
-    // 3️⃣ FORGOT PASSWORD (Your Working Code)
+    // 3️⃣ FORGOT PASSWORD 
     // ============================================================
     @PostMapping("/forgot-password")
     public String forgotPassword(@RequestParam String email) {
@@ -113,7 +140,7 @@ public class AuthController {
     }
 
     // ============================================================
-    // 4️⃣ RESET PASSWORD (Your Working Code)
+    // 4️⃣ RESET PASSWORD 
     // ============================================================
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
@@ -144,4 +171,27 @@ public class AuthController {
         tokenRepository.delete(resetToken);
         return ResponseEntity.ok("Password reset successful");
     }
+
+    @GetMapping("/user/{userId}")
+public ResponseEntity<?> getUserNameById(@PathVariable String userId) {
+    try {
+        Optional<User> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User user = userOpt.get();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("userId", user.getId());
+        response.put("fullName", user.getFullName());
+
+        return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error: " + e.getMessage());
+    }
+}
+
 }

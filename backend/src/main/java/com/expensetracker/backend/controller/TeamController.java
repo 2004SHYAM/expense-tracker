@@ -1,30 +1,31 @@
 package com.expensetracker.backend.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.Optional;
-
-import org.bson.types.ObjectId;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.expensetracker.backend.model.Team;
 import com.expensetracker.backend.model.User;
 import com.expensetracker.backend.repository.TeamRepository;
 import com.expensetracker.backend.repository.UserRepository;
+import com.expensetracker.backend.service.JwtService;
+import com.expensetracker.backend.service.TeamService;
 import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import jakarta.servlet.http.HttpServletRequest;
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/team")
@@ -37,63 +38,79 @@ public class TeamController {
     @Autowired
     private UserRepository userRepo;
 
-    /**
-     * ✅ Create a new team for a user and return a Base64 QR code for joining.
-     */
+    @Autowired
+    private TeamService teamService;
+
+    @Autowired
+    private JwtService jwtService;
+
+    private String getEmailFromToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) return null;
+        String token = header.substring(7);
+        return jwtService.extractEmail(token);
+    }
+
+    // -----------------------------------------------------
+    // 1️⃣ CREATE TEAM
+    // -----------------------------------------------------
+
     @PostMapping("/create")
-    public ResponseEntity<?> createTeam(@RequestParam String teamName, @RequestParam String email)
+    public ResponseEntity<?> createTeam(@RequestBody Map<String, String> payload)
             throws WriterException, IOException {
 
-        // Validate input
+        String teamName = payload.get("teamName");
+        String email = payload.get("email");
+
         if (teamName == null || teamName.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Team name cannot be empty");
         }
 
         Optional<User> userOpt = userRepo.findByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("User not found for email: " + email);
+            return ResponseEntity.badRequest().body("User not found");
         }
 
         User user = userOpt.get();
 
-        // ✅ Create new team
         Team team = new Team();
         team.setTeamName(teamName);
         team.setCreatedAt(Instant.now());
-        team.setOwnerId(user.getId());
 
-        // ✅ Generate short random join code (8 characters)
         String joinCode = new ObjectId().toHexString().substring(0, 8).toUpperCase();
         team.setJoinCode(joinCode);
 
-        // ✅ Add creator as first member
+        // Add creator
         team.getMemberIds().add(user.getId());
-
-        // ✅ Save team
         teamRepo.save(team);
 
-        // ✅ Link user to this team
-        user.setTeamId(team.getId());
+        // Add team to user
+        user.addTeamId(team.getId());
         userRepo.save(user);
 
-        // ✅ Generate QR Code as Base64
-        QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        var bitMatrix = qrCodeWriter.encode(joinCode, BarcodeFormat.QR_CODE, 250, 250);
+        // Generate QR
+        QRCodeWriter qrWriter = new QRCodeWriter();
+        var matrix = qrWriter.encode(joinCode, BarcodeFormat.QR_CODE, 250, 250);
 
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
-            String base64 = Base64.getEncoder().encodeToString(outputStream.toByteArray());
-            return ResponseEntity.ok("Team created successfully! QR Code (Base64): " + base64);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().body("Failed to generate QR code: " + e.getMessage());
-        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(matrix, "PNG", out);
+        String base64QR = Base64.getEncoder().encodeToString(out.toByteArray());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("teamId", team.getId());
+        response.put("teamName", teamName);
+        response.put("joinCode", joinCode);
+        response.put("qrBase64", base64QR);
+
+        return ResponseEntity.ok(response);
     }
 
-    /**
-     * ✅ Join an existing team using its join code and user email.
-     */
+    // -----------------------------------------------------
+    // 2️⃣ JOIN TEAM
+    // -----------------------------------------------------
+
     @PostMapping("/join")
-    public ResponseEntity<String> joinTeam(@RequestParam String joinCode, @RequestParam String email) {
+    public ResponseEntity<?> joinTeam(@RequestParam String joinCode, @RequestParam String email) {
 
         Optional<Team> teamOpt = teamRepo.findByJoinCode(joinCode);
         if (teamOpt.isEmpty()) {
@@ -102,28 +119,42 @@ public class TeamController {
 
         Optional<User> userOpt = userRepo.findByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("User not found for email: " + email);
+            return ResponseEntity.badRequest().body("User not found");
         }
 
         Team team = teamOpt.get();
         User user = userOpt.get();
 
-        // ✅ Add user to team if not already a member
+        // Add user to team
         if (!team.getMemberIds().contains(user.getId())) {
             team.getMemberIds().add(user.getId());
             teamRepo.save(team);
         }
 
-        // ✅ Link user to team
-        user.setTeamId(team.getId());
+        // Add team to user
+        user.addTeamId(team.getId());
         userRepo.save(user);
 
-        return ResponseEntity.ok("Successfully joined team: " + team.getTeamName());
+        return ResponseEntity.ok("Joined team successfully!");
     }
 
-    /**
-     * ✅ Fetch details of a specific team
-     */
+    // -----------------------------------------------------
+    // 3️⃣ FETCH TEAM EXPENSES SUMMARY
+    // -----------------------------------------------------
+
+    @GetMapping("/user/{userId}/expenses")
+    public ResponseEntity<?> getUserTeamExpenses(@PathVariable String userId) {
+        try {
+            return ResponseEntity.ok(teamService.getTeamExpensesForUser(userId));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+    // -----------------------------------------------------
+    // 4️⃣ GET TEAM DETAILS
+    // -----------------------------------------------------
+
     @GetMapping("/{teamId}")
     public ResponseEntity<?> getTeam(@PathVariable String teamId) {
         return teamRepo.findById(teamId)
@@ -131,11 +162,60 @@ public class TeamController {
                 .orElseGet(() -> ResponseEntity.badRequest().body("Team not found"));
     }
 
-    /**
-     * ✅ List all teams (for admin or debugging)
-     */
+    // -----------------------------------------------------
+    // 5️⃣ GET ALL TEAMS
+    // -----------------------------------------------------
+
     @GetMapping("/all")
     public ResponseEntity<?> getAllTeams() {
         return ResponseEntity.ok(teamRepo.findAll());
     }
+
+
+
+   @GetMapping("/my-teams/{userId}")
+public ResponseEntity<?> getUserTeams(@PathVariable String userId) {
+
+    Optional<User> userOpt = userRepo.findById(userId);
+    if (userOpt.isEmpty()) {
+        return ResponseEntity.badRequest().body("User not found");
+    }
+
+    User user = userOpt.get();
+
+    List<Team> teams = teamRepo.findAllById(user.getTeamIds());
+
+    return ResponseEntity.ok(teams);
+}
+
+        // ---------- QR CODE GENERATION ----------
+        public byte[] generateTeamQr(String teamId) {
+            try {
+                String qrText = "http://localhost:5173/join-team/" + teamId;
+
+                QRCodeWriter qrCodeWriter = new QRCodeWriter();
+                BitMatrix bitMatrix = qrCodeWriter.encode(qrText, BarcodeFormat.QR_CODE, 300, 300);
+
+                ByteArrayOutputStream pngOutput = new ByteArrayOutputStream();
+                MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutput);
+
+                return pngOutput.toByteArray();
+            } catch (WriterException | IOException e) {
+                throw new RuntimeException("Failed to generate QR code", e);
+            }
+        }
+
+        @GetMapping("/team/{teamId}/qr")
+        public ResponseEntity<byte[]> getTeamQr(@PathVariable String teamId) {
+
+            byte[] qrImage = generateTeamQr(teamId);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(HttpHeaders.CONTENT_TYPE, "image/png");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(qrImage);
+        }
+
 }

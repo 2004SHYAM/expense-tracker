@@ -9,32 +9,52 @@ import java.util.List;
 
 @Document(collection = "teams")
 public class Team {
+
     @Id
     private String id;
+
     private String teamName;
-    private String joinCode;
     private String ownerId;
+    private String joinCode;
     private Instant createdAt;
+
     private List<String> memberIds = new ArrayList<>();
-    private String TeamId;
 
-    public Team() {}
+    // For summary
+    private String userName;
+    private double needToPay;
+    private double needToGet;
 
-    // Getters
     public String getId() { return id; }
-    public String getTeamName() { return teamName; }
-    public String getJoinCode() { return joinCode; }
-    public String getOwnerId() { return ownerId; }
-    public Instant getCreatedAt() { return createdAt; }
-    public List<String> getMemberIds() { return memberIds; }
-    public String getTeamId() { return TeamId; }
 
-    // Setters
-    public void setId(String id) { this.id = id; }
+    public String getTeamName() { return teamName; }
+
     public void setTeamName(String teamName) { this.teamName = teamName; }
-    public void setJoinCode(String joinCode) { this.joinCode = joinCode; }
+
+    public String getOwnerId() { return ownerId; }
+
     public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+
+    public String getJoinCode() { return joinCode; }
+
+    public void setJoinCode(String joinCode) { this.joinCode = joinCode; }
+
+    public Instant getCreatedAt() { return createdAt; }
+
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setMemberIds(List<String> memberIds) { this.memberIds = memberIds; }
-    public void setTeamId(String teamId) { TeamId = teamId; }
+
+    public List<String> getMemberIds() { return memberIds; }
+
+    // Summary
+    public String getUserName() { return userName; }
+
+    public void setUserName(String userName) { this.userName = userName; }
+
+    public double getNeedToPay() { return needToPay; }
+
+    public void setNeedToPay(double needToPay) { this.needToPay = needToPay; }
+
+    public double getNeedToGet() { return needToGet; }
+
+    public void setNeedToGet(double needToGet) { this.needToGet = needToGet; }
 }

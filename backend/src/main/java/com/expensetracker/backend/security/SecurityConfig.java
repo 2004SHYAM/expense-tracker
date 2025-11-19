@@ -21,16 +21,23 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/**",
-                    "/api/team/**",
-                    "/api/expenses/**",
-                    "/h2-console/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**"
-                ).permitAll()
-                .anyRequest().permitAll()
-            )
+    .requestMatchers(
+        "/api/auth/**",
+        "/api/team/create",
+        "/api/team/join",
+        "/api/expenses/**",
+        "/h2-console/**",
+        "/v3/api-docs/**",
+        "/swagger-ui/**",
+        "/api/auth/user/**"
+    ).permitAll()
+        
+    // Protected endpoint (requires JWT)
+    .requestMatchers("/api/team/expenses/me").authenticated()
+
+    .anyRequest().permitAll()
+)
+
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable());
 
@@ -52,7 +59,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // ✅ Allow your React frontend
-        config.setAllowedOriginPatterns(List.of("http://localhost:5173"));
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+
         config.setAllowCredentials(true);
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

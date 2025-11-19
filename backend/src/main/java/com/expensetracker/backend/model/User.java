@@ -3,76 +3,68 @@ package com.expensetracker.backend.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Document(collection = "users")
 public class User {
 
     @Id
     private String id;
+
     private String firstName;
     private String lastName;
     private String email;
     private String password;
-    private String teamId; // for linking to teams
 
-    public User() {
-    }
+    // NEW: supports multi-team
+    private List<String> teamIds = new ArrayList<>();
 
-    public User(String firstName, String lastName, String email, String password, String teamId) {
+    public User() {}
+
+    public User(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.password = password;
-        this.teamId = teamId;
     }
 
-    // Getters and Setters
-    public String getId() {
-        return id;
+    public String getFullName() {
+        return (firstName + " " + lastName).trim();
     }
 
-    public void setId(String id) {
-        this.id = id;
+    // Getter / Setters
+    public String getId() { return id; }
+
+    public void setId(String id) { this.id = id; }
+
+    public String getFirstName() { return firstName; }
+
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+
+    public String getLastName() { return lastName; }
+
+    public void setLastName(String lastName) { this.lastName = lastName; }
+
+    public String getEmail() { return email; }
+
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+
+    public void setPassword(String password) { this.password = password; }
+
+    public List<String> getTeamIds() { return teamIds; }
+
+    public void setTeamIds(List<String> teamIds) { this.teamIds = teamIds; }
+
+    public void addTeamId(String teamId) {
+        if (!this.teamIds.contains(teamId)) {
+            this.teamIds.add(teamId);
+        }
     }
 
-    public String getFirstName() {
-        return firstName;
-    }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getTeamId() {
-        return teamId;
-    }
-
-    public void setTeamId(String teamId) {
-        this.teamId = teamId;
-    }
 
     @Override
     public String toString() {
@@ -81,7 +73,7 @@ public class User {
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
-                ", teamId='" + teamId + '\'' +
+                ", teamIds=" + teamIds +
                 '}';
     }
 }
