@@ -52,14 +52,16 @@ export default function Home() {
           <p>See all expenses made by team members.</p>
         </Link>
 
-        <Link to="/split-bills" style={styles.card}>
-          <h3>Split Bills</h3>
-          <p>Calculate who owes whom.</p>
-        </Link>
+        
 
         <Link to="/track-payments" style={styles.card}>
           <h3>Track Payments</h3>
-          <p>Mark payments as paid or pending.</p>
+          <p>Check payments as paid or pending.</p>
+        </Link>
+
+        <Link to="/approvals" style={styles.card}>
+          <h3>Approvals</h3>
+          <p>Mark payments as paid or pending</p>
         </Link>
 
         <Link to="/summary" style={styles.card}>

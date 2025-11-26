@@ -1,135 +1,142 @@
 import React, { useEffect, useState } from "react";
 
 export default function TeamSummary() {
-  const [summary, setSummary] = useState(null);
-  const [members, setMembers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const userId = localStorage.getItem("userId");
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    loadSummary();
+    loadTeams();
   }, []);
 
-  const loadSummary = async () => {
+  const loadTeams = async () => {
     try {
-      // ---------- 1. Fetch Team Summary ----------
-      const sumRes = await fetch(
-        `http://localhost:8080/api/team/user/${userId}/expenses`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+      const data = await res.json();
 
-      const sumData = await sumRes.json();
-      if (!sumData || sumData.length === 0) return;
+      const fullData = [];
 
-      setSummary(sumData[0]);
-
-      // ---------- 2. Fetch Team Members ----------
-      const teamId = sumData[0].id;
-      const teamRes = await fetch(`http://localhost:8080/api/team/${teamId}`);
-      const teamData = await teamRes.json();
-
-      const membersDetailed = [];
-
-      for (const memberId of teamData.memberIds) {
-        const userRes = await fetch(
-          `http://localhost:8080/api/auth/user/${memberId}`
+      for (const team of data) {
+        // 1. Get Expense Summary
+        const summaryRes = await fetch(
+          `http://localhost:8080/api/expenses/summary/${team.id}`
         );
-        const userDetails = await userRes.json();
-        membersDetailed.push(userDetails.fullName);
+        const summaryRaw = await summaryRes.json();
+
+        // 2. Get Members
+        const memberArr = [];
+        for (const m of team.memberIds) {
+          const uRes = await fetch(`http://localhost:8080/api/auth/user/${m}`);
+          const user = await uRes.json();
+
+          // --- INTELLIGENT MATCHING LOGIC ---
+          let amount = 0;
+          
+          // Prepare the user's data for matching
+          const userEmail = user.email ? user.email.toLowerCase() : "";
+          const userNameClean = user.fullName ? user.fullName.toLowerCase().replace(/\s+/g, '') : ""; 
+          // ^ Converts "Jai Krishna" to "jaikrishna"
+
+          // Iterate over every key in the summary to find a match
+          const summaryKeys = Object.keys(summaryRaw);
+          
+          for (const key of summaryKeys) {
+            const keyLower = key.toLowerCase();
+            const amountVal = summaryRaw[key];
+
+            // CHECK 1: Exact Email Match
+            if (keyLower === userEmail) {
+              amount = amountVal;
+              break;
+            }
+
+            // CHECK 2: Name inside Email (Fuzzy Match)
+            // Example: Matches member "Jai Krishna" to key "jaikrishna@gmail.com"
+            if (userNameClean.length > 3 && keyLower.includes(userNameClean)) {
+              amount = amountVal;
+              break;
+            }
+            
+            // CHECK 3: If the summary key IS the name (Exact name match ignoring spaces)
+            // Example: Matches member "Rahul" to key "Rahul"
+            if (keyLower.replace(/\s+/g, '') === userNameClean) {
+              amount = amountVal;
+              break;
+            }
+          }
+
+          memberArr.push({
+            name: user.fullName,
+            amount: amount,
+          });
+        }
+
+        fullData.push({
+          ...team,
+          members: memberArr,
+        });
       }
 
-      setMembers(membersDetailed);
-    } catch (e) {
-      console.error("Error loading summary:", e);
+      setTeams(fullData);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading || !summary) {
-    return <h2 style={{ padding: 30 }}>Loading Summary...</h2>;
-  }
+  if (loading) return <h2 style={{ padding: 20 }}>Loading…</h2>;
 
   return (
-    <div style={styles.page}>
-      <div style={styles.mainBox}>
-        <h1 style={styles.title}>My Team Summary</h1>
+    <div style={{ padding: "40px" }}>
+      <h1 style={{ fontSize: "36px", marginBottom: "20px" }}>My Team Summary</h1>
 
-        {/* Unified Box */}
-        <div style={styles.summaryBox}>
-          <p><b>Team:</b> {summary.teamName}</p>
-          <p><b>User:</b> {summary.userName}</p>
+      {teams.map((team) => (
+        <div key={team.id} style={styles.card}>
+          <h2>{team.teamName}</h2>
+          
+          <h3 style={{ marginTop: "20px" }}>Members Status</h3>
+          
+          {team.members.map((member, i) => (
+            <div key={i} style={styles.memberBox}>
+              {/* Name */}
+              <span style={{ fontWeight: "500" }}>{member.name}</span>
 
-          <p style={{ fontWeight: "bold", color: "red" }}>
-            Need To Pay: ₹{summary.needToPay}
-          </p>
-
-          <p style={{ fontWeight: "bold", color: "green" }}>
-            Need To Get: ₹{summary.needToGet}
-          </p>
-
-          {/* Team Members Section */}
-          <h2 style={styles.subHeading}>Team Members</h2>
-
-          <div style={styles.membersRow}>
-            {members.map((m, idx) => (
-              <div key={idx} style={styles.memberCard}>
-                {m}
-              </div>
-            ))}
-          </div>
+              {/* Amount */}
+              <span
+                style={{
+                  fontWeight: "bold",
+                  color: member.amount < 0 ? "red" : member.amount > 0 ? "green" : "black",
+                }}
+              >
+                ₹{member.amount}
+              </span>
+            </div>
+          ))}
         </div>
-      </div>
+      ))}
     </div>
   );
 }
 
 const styles = {
-  page: {
-    padding: "40px",
-    display: "flex",
-    justifyContent: "center",
-  },
-
-  mainBox: {
-    width: "90%",
-    maxWidth: "900px",
-  },
-
-  title: {
-    fontSize: "36px",
-    fontWeight: "bold",
-    marginBottom: "20px",
-  },
-
-  summaryBox: {
-    background: "#f5f5f5",
+  card: {
+    background: "#f6f6f6",
     padding: "25px",
     borderRadius: "12px",
-    boxShadow: "0 0 12px rgba(0,0,0,0.1)",
+    marginBottom: "30px",
+    width: "600px",
+    boxShadow: "0 0 10px rgba(0,0,0,0.15)",
   },
-
-  subHeading: {
-    fontSize: "22px",
-    marginTop: "25px",
-    marginBottom: "15px",
-  },
-
-  membersRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "20px",
-  },
-
-  memberCard: {
-    background: "white",
+  memberBox: {
     padding: "15px",
-    width: "200px",
-    borderRadius: "10px",
-    boxShadow: "0 0 5px rgba(0,0,0,0.1)",
-    fontWeight: "bold",
-    textAlign: "center",
+    background: "white",
+    borderRadius: "8px",
+    marginBottom: "10px",
+    fontSize: "18px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 };

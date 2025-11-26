@@ -26,11 +26,11 @@ export default function AddExpense() {
     }
 
     const payload = {
-      teamId,
-      getPaidByUserId: userId,
-      amount,
-      description,
-    };
+  teamId: teamId,
+  paidByUserId: userId,
+  amount: Number(amount),
+  description: description
+};
 
     const res = await fetch("http://localhost:8080/api/expenses/add", {
       method: "POST",
@@ -39,7 +39,7 @@ export default function AddExpense() {
     });
 
     const data = await res.json();
-    setMessage(data.message);
+    setMessage(data);
   };
 
   return (
