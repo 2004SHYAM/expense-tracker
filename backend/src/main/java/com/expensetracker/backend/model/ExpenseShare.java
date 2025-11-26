@@ -1,5 +1,8 @@
 package com.expensetracker.backend.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * ----------------------------------------------------------------------------
  * ExpenseShare
@@ -69,6 +72,9 @@ public class ExpenseShare {
      * Sets status to "UNPAID" by default.
      * Required by Spring + MongoDB.
      */
+
+    private List<ExpenseShare> shares = new ArrayList<>();
+    
     public ExpenseShare() {
         this.status = "UNPAID";
     }

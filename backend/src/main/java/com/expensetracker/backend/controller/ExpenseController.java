@@ -359,4 +359,43 @@ public class ExpenseController {
 
         return ResponseEntity.ok(expenses);
     }
+    @PostMapping("/custom-add")
+public ResponseEntity<?> addCustomExpense(@RequestBody Map<String, Object> body) {
+
+    String teamId = (String) body.get("teamId");
+    String paidByUserId = (String) body.get("paidByUserId");
+    double amount = Double.parseDouble(body.get("amount").toString());
+    String description = (String) body.get("description");
+
+    List<Map<String, Object>> incomingShares =
+            (List<Map<String, Object>>) body.get("shares");
+
+    Expense expense = new Expense();
+    expense.setTeamId(teamId);
+    expense.setPaidByUserId(paidByUserId);
+    expense.setDescription(description);
+    expense.setAmount(amount);
+    expense.setDate(Instant.now());
+
+    List<ExpenseShare> shares = new ArrayList<>();
+
+    for (Map<String, Object> s : incomingShares) {
+
+        String uid = (String) s.get("userId");
+        double shareAmount = Double.parseDouble(s.get("amount").toString());
+
+        boolean isPayer = uid.equals(paidByUserId);
+        ExpenseShare share = new ExpenseShare(uid, shareAmount, isPayer);
+        share.setPayeeId(paidByUserId);
+
+        shares.add(share);
+    }
+
+    expense.setShares(shares);
+    expenseRepo.save(expense);
+
+    return ResponseEntity.ok("Custom split expense added successfully");
+}
+
+
 }

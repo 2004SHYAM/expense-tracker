@@ -1,67 +1,34 @@
+// src/main/java/com/expensetracker/backend/model/User.java
 package com.expensetracker.backend.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * ----------------------------------------------------------------------------
- * User
- * ----------------------------------------------------------------------------
- * This model represents a registered user inside the Expense Tracker system.
- *
- * A user can:
- *   - Belong to multiple teams
- *   - Add and view expenses
- *   - Approve/reject payments
- *   - Log in using email & password
- *
- * This class maps to the MongoDB "users" collection.
- * ----------------------------------------------------------------------------
- */
 @Document(collection = "users")
 public class User {
 
-    /**
-     * MongoDB unique ID for this user.
-     */
     @Id
     private String id;
 
-    /**
-     * User's first and last name.
-     * These values can be optional (especially in login via email only).
-     */
     private String firstName;
     private String lastName;
-
-    /**
-     * Email is used as the login username and must be unique.
-     */
     private String email;
-
-    /**
-     * BCrypt-hashed password stored securely.
-     */
     private String password;
 
-    /**
-     * NEW FEATURE:
-     * A user can now join multiple teams.
-     * This list stores the IDs of all the teams the user belongs to.
-     */
+    // NEW: supports multi-team
     private List<String> teamIds = new ArrayList<>();
 
-    // ----------------------------------------------------------------------
-    // CONSTRUCTORS
-    // ----------------------------------------------------------------------
+    // NEW: profile picture stored as base64 or image URL
+    private String profileImage;
+
+    // NEW: optional phone number
+    private String phone;
 
     public User() {}
 
-    /**
-     * Convenience constructor used during registration.
-     */
     public User(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
@@ -69,22 +36,12 @@ public class User {
         this.password = password;
     }
 
-    // ----------------------------------------------------------------------
-    // LOGIC HELPERS
-    // ----------------------------------------------------------------------
-
-    /**
-     * Returns the user's full name in a clean format.
-     * If last name is missing, it avoids leaving trailing spaces.
-     */
+    // return combined full name
     public String getFullName() {
         return (firstName + " " + lastName).trim();
     }
 
-    // ----------------------------------------------------------------------
-    // GETTERS & SETTERS
-    // ----------------------------------------------------------------------
-
+    // Getter / Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -102,19 +59,19 @@ public class User {
 
     public List<String> getTeamIds() { return teamIds; }
     public void setTeamIds(List<String> teamIds) { this.teamIds = teamIds; }
-
-    /**
-     * Adds a new team ID if the user isn’t already a member.
-     */
     public void addTeamId(String teamId) {
         if (!this.teamIds.contains(teamId)) {
             this.teamIds.add(teamId);
         }
     }
 
-    // ----------------------------------------------------------------------
-    // DEBUG HELPER
-    // ----------------------------------------------------------------------
+    // profile image - base64 or url
+    public String getProfileImage() { return profileImage; }
+    public void setProfileImage(String profileImage) { this.profileImage = profileImage; }
+
+    // phone
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
     @Override
     public String toString() {

@@ -268,5 +268,22 @@ public class TeamController {
                 .headers(headers)
                 .body(qrImage);
     }
+    @GetMapping("/members/{teamId}")
+public ResponseEntity<?> getTeamMembers(@PathVariable String teamId) {
+    Optional<Team> teamOpt = teamRepo.findById(teamId);
+
+    if (teamOpt.isEmpty()) {
+        return ResponseEntity.status(404).body("Team not found");
+    }
+
+    Team team = teamOpt.get();
+
+    List<String> memberIds = team.getMemberIds();
+
+    List<User> members = userRepo.findAllById(memberIds);
+
+    return ResponseEntity.ok(members);
+}
+
 
 }
