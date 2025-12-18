@@ -4,7 +4,7 @@ export default function ViewExpenses() {
   const [teamId, setTeamId] = useState("");
   const [teams, setTeams] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [users, setUsers] = useState({}); // Stores ID -> Name mapping
+  const [users, setUsers] = useState({});
 
   const userId = localStorage.getItem("userId");
 
@@ -13,69 +13,131 @@ export default function ViewExpenses() {
   }, []);
 
   const loadTeams = async () => {
-    try {
-      const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
-      const data = await res.json();
-      setTeams(data);
-    } catch (e) {
-      console.error("Error loading teams", e);
-    }
+    const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+    const data = await res.json();
+    setTeams(data);
   };
 
   const loadExpenses = async (id) => {
     setTeamId(id);
-    setExpenses([]); // Clear list momentarily
+    setExpenses([]);
 
-    try {
-      const res = await fetch(`http://localhost:8080/api/expenses/team/${id}`);
-      const data = await res.json();
-      setExpenses(data);
+    const res = await fetch(`http://localhost:8080/api/expenses/team/${id}`);
+    const data = await res.json();
+    setExpenses(data);
 
-      // 1. Collect all unique User IDs from these expenses
-      const uniqueIds = new Set();
-      data.forEach((ex) => {
-        uniqueIds.add(ex.paidByUserId); // The Payer
-        ex.shares.forEach((s) => uniqueIds.add(s.userId)); // The Splitters
-      });
+    // collect unique user ids
+    const uniqueIds = new Set();
+    data.forEach((ex) => {
+      uniqueIds.add(ex.paidByUserId);
+      ex.shares.forEach((s) => uniqueIds.add(s.userId));
+    });
 
-      // 2. Fetch details for each ID safely
-      for (const uid of uniqueIds) {
-        // If we already have this user in our list, skip fetching
-        if (users[uid]) continue;
+    for (const uid of uniqueIds) {
+      if (users[uid]) continue;
 
-        try {
-          const uRes = await fetch(`http://localhost:8080/api/auth/user/${uid}`);
-          
-          if (uRes.ok) {
-            const user = await uRes.json();
-            
-            // Determine the best name to show
-            const name = user.fullName || user.firstName || user.email || "Unknown";
+      try {
+        const r = await fetch(`http://localhost:8080/api/auth/user/${uid}`);
 
-            // Update state IMMEDIATELY for this user (Functional Update)
-            setUsers((prev) => ({ ...prev, [uid]: name }));
-          } else {
-             // If API returns 404, mark as Unknown so it stops showing "Loading..."
-             setUsers((prev) => ({ ...prev, [uid]: "Unknown User" }));
-          }
-        } catch (err) {
-          console.error(`Failed to load user ${uid}`, err);
-          setUsers((prev) => ({ ...prev, [uid]: "Error Loading" }));
+        if (r.ok) {
+          const u = await r.json();
+          const name = u.fullName || u.firstName || u.email || "User";
+          setUsers((prev) => ({ ...prev, [uid]: name }));
+        } else {
+          setUsers((prev) => ({ ...prev, [uid]: "Unknown User" }));
         }
+      } catch {
+        setUsers((prev) => ({ ...prev, [uid]: "Error Loading" }));
       }
-
-    } catch (e) {
-      console.error("Error loading expenses", e);
     }
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.box}>
-        <h1>View Expenses</h1>
+    <div className="ve-root">
+      <style>{`
+        :root {
+          --glass: rgba(255,255,255,0.25);
+          --glass-border: rgba(255,255,255,0.35);
+          --text: #0b1220;
+        }
 
-        {/* Team selection */}
-        <select style={styles.input} onChange={(e) => loadExpenses(e.target.value)}>
+        .dark-theme {
+          --glass: rgba(18,22,30,0.35);
+          --glass-border: rgba(255,255,255,0.1);
+          --text: #f5f8ff;
+        }
+
+        .ve-root {
+          min-height: 100vh;
+          padding: 120px 20px 160px;
+          background: linear-gradient(135deg, #ff7ce0, #7ea2ff, #5cf3ff);
+          background-size: 300% 300%;
+          animation: veAnim 12s ease infinite;
+          font-family: Inter, sans-serif;
+          color: var(--text);
+        }
+
+        @keyframes veAnim {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        .ve-container {
+          max-width: 900px;
+          margin: auto;
+          background: var(--glass);
+          backdrop-filter: blur(20px) saturate(180%);
+          border: 1px solid var(--glass-border);
+          border-radius: 22px;
+          padding: 30px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .ve-input {
+          width: 100%;
+          padding: 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.5);
+          background: rgba(255,255,255,0.28);
+          backdrop-filter: blur(12px);
+          margin-bottom: 18px;
+          font-size: 16px;
+        }
+
+        .expense-card {
+          background: var(--glass);
+          border: 1px solid var(--glass-border);
+          backdrop-filter: blur(18px);
+          padding: 18px;
+          border-radius: 16px;
+          margin-bottom: 18px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .share-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .status-paid { color: #00c853; font-weight: 700; }
+        .status-await { color: #ff9800; font-weight: 700; }
+        .status-pending { color: #ff1744; font-weight: 700; }
+
+        @media(max-width:480px){
+          .ve-container { padding: 20px; }
+        }
+      `}</style>
+
+      <div className="ve-container">
+        <h1 style={{ marginBottom: 20 }}>View Expenses</h1>
+
+        <select
+          className="ve-input"
+          onChange={(e) => loadExpenses(e.target.value)}
+        >
           <option value="">Select Team</option>
           {teams.map((t) => (
             <option key={t.id} value={t.id}>
@@ -84,80 +146,44 @@ export default function ViewExpenses() {
           ))}
         </select>
 
-        {/* Expense list */}
-        <div style={{ marginTop: "20px" }}>
-          {expenses.map((ex) => (
-            <div key={ex.id} style={styles.expenseCard}>
-              <h3>{ex.description}</h3>
-              <p><b>Total:</b> ₹{ex.amount}</p>
-              
-              {/* Show Payer Name */}
-              <p>
-                <b>Paid By: </b> 
-                {users[ex.paidByUserId] || "Loading..."}
-              </p>
-              
-              <p><b>Date:</b> {new Date(ex.date).toLocaleString()}</p>
+        {expenses.map((ex) => (
+          <div key={ex.id} className="expense-card">
+            <h3>{ex.description}</h3>
+            <p><b>Total:</b> ₹{ex.amount}</p>
+            <p><b>Paid By:</b> {users[ex.paidByUserId] || "Loading..."}</p>
+            <p><b>Date:</b> {new Date(ex.date).toLocaleString()}</p>
 
-              <div style={styles.sharesBox}>
-                <b style={{display:'block', marginBottom: '5px'}}>Split Details:</b>
-                {ex.shares.map((s, i) => (
-                  <div key={i} style={styles.shareItem}>
-                    {/* Show Member Name */}
-                    <span style={{fontWeight: '500'}}>
-                        {users[s.userId] || "Loading..."}
-                    </span>
-                    
-                    <span>₹{s.amount}</span>
-                    
-                    <span style={{ color: s.paid ? "green" : "red", fontWeight: 'bold' }}>
-                      {s.paid ? "Paid" : "Pending"}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div style={{ marginTop: 10 }}>
+              <b>Split Details:</b>
+              {ex.shares.map((s, i) => (
+                <div key={i} className="share-item">
+                  <span>{users[s.userId] || "Loading..."}</span>
+                  <span>₹{s.amount}</span>
+
+                  {/* Correct Working Status Logic */}
+                  <span
+                    className={
+                      s.status === "APPROVED"
+                        ? "status-paid"
+                        : s.status === "PENDING_UPI_APPROVAL" ||
+                          s.status === "PENDING_CASH_APPROVAL"
+                        ? "status-await"
+                        : "status-pending"
+                    }
+                  >
+                    {s.status === "APPROVED"
+                      ? "Paid"
+                      : s.status === "PENDING_UPI_APPROVAL" ||
+                        s.status === "PENDING_CASH_APPROVAL"
+                      ? "Awaiting Approval"
+                      : "Pending"}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-
-const styles = {
-  page: { padding: "40px", display: "flex", justifyContent: "center" },
-  box: {
-    width: "600px",
-    background: "#f9f9f9",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 0 12px rgba(0,0,0,0.1)",
-  },
-  input: {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-  },
-  expenseCard: {
-    background: "white",
-    padding: "15px",
-    borderRadius: "10px",
-    marginBottom: "15px",
-    boxShadow: "0 0 8px rgba(0,0,0,0.1)",
-  },
-  sharesBox: { 
-    marginTop: "15px", 
-    paddingTop: "10px",
-    borderTop: "1px solid #eee"
-  },
-  shareItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "8px 0",
-    borderBottom: "1px solid #f0f0f0",
-    fontSize: "14px"
-  },
-};

@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 
 export default function Teams() {
   const [teams, setTeams] = useState([]);
-  const [hoverMembers, setHoverMembers] = useState(null);
-  const [qrCode, setQrCode] = useState(null);
+  const [qrTeam, setQrTeam] = useState(null); // Holds selected team data
   const [loading, setLoading] = useState(true);
 
   const userId = localStorage.getItem("userId");
@@ -16,39 +15,36 @@ export default function Teams() {
     try {
       const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
       const data = await res.json();
-      setTeams(data);
+
+      if (Array.isArray(data)) setTeams(data);
     } catch (err) {
-      console.error(err);
+      console.log("Error loading teams", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMembers = async (teamId) => {
+  // Open QR drawer + load members
+  const openQR = async (team) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/team/${teamId}`);
-      const team = await res.json();
+      // FETCH MEMBERS
+      const mRes = await fetch(`http://localhost:8080/api/team/members/${team.id}`);
+      const users = await mRes.json();
 
-      const members = [];
-      for (const mId of team.memberIds) {
-        const uRes = await fetch(`http://localhost:8080/api/auth/user/${mId}`);
-        const user = await uRes.json();
-        members.push(user.fullName);
-      }
-
-      setHoverMembers(members);
+      setQrTeam({
+        teamName: team.teamName,
+        teamId: team.id,
+        qrUrl: `http://localhost:8080/api/team/team/${team.id}/qr`,
+        members: Array.isArray(users) ? users.map((u) => u.fullName || u.email) : []
+      });
     } catch (err) {
-      console.error(err);
+      console.log("Error loading team members", err);
     }
   };
 
-  const showQR = (teamId) => {
-    setQrCode(`http://localhost:8080/api/team/team/${teamId}/qr`);
-  };
+  const closeQR = () => setQrTeam(null);
 
-  const closeQR = () => setQrCode(null);
-
-  if (loading) return <h2 style={{ padding: 20 }}>Loading Teams…</h2>;
+  if (loading) return <h2 style={{ padding: 20 }}>Loading teams…</h2>;
 
   return (
     <div style={styles.page}>
@@ -56,151 +52,185 @@ export default function Teams() {
 
       <div style={styles.list}>
         {teams.map((team) => (
-          <div
-            key={team.joinCode}
-            style={styles.teamBox}
-            onMouseEnter={() => loadMembers(team.id)}
-            onMouseLeave={() => setHoverMembers(null)}
-          >
+          <div key={team.id} style={styles.teamBox}>
             <p style={styles.teamName}>{team.teamName}</p>
 
-            <button style={styles.qrButton} onClick={() => showQR(team.joinCode)}>
+            <button style={styles.qrButton} onClick={() => openQR(team)}>
               View QR Code
             </button>
-
-            {hoverMembers && (
-              <div style={styles.popup}>
-                <b>Team Members</b>
-                {hoverMembers.map((name, i) => (
-                  <p key={i}>{name}</p>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>
 
-      {/* Modal for QR Code */}
-      {qrCode && (
-  <div style={styles.qrPanel}>
-    <div style={styles.qrHeader}>
-      <h3 style={{ margin: 0 }}>Team QR Code</h3>
-      <button style={styles.closeX} onClick={closeQR}>✕</button>
-    </div>
+      {/* ===== QR Drawer + Members ===== */}
+      {qrTeam && (
+        <div style={styles.qrOverlay}>
+          <div style={styles.qrPanel}>
 
-    <img src={qrCode} alt="QR Code" style={styles.qrImage} />
+            {/* HEADER */}
+            <div style={styles.qrHeader}>
+              <h3 style={{ margin: 0 }}>{qrTeam.teamName} — QR Code</h3>
+              <button style={styles.closeX} onClick={closeQR}>✕</button>
+            </div>
 
-    <p style={{ textAlign: "right", marginTop: "10px" }}>
-      Scan to join this team
-    </p>
-  </div>
-)}
+            {/* QR Image */}
+            <img src={qrTeam.qrUrl} alt="QR Code" style={styles.qrImage} />
 
+            <p style={{ textAlign: "center", marginTop: 10 }}>
+              Scan to join this team
+            </p>
+
+            {/* MEMBERS */}
+            <div style={styles.memberSection}>
+              <h4 style={{ marginBottom: 10 }}>Members</h4>
+
+              {qrTeam.members.length === 0 && (
+                <p style={{ opacity: 0.6 }}>No members found</p>
+              )}
+
+              {qrTeam.members.map((name, i) => (
+                <div key={i} style={styles.memberItem}>
+                  <div style={styles.avatarCircle}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                  <span>{name}</span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-const styles = {
-  page: { padding: "40px" },
-  title: { fontSize: "34px", fontWeight: "bold", marginBottom: "30px" },
+/* ====================== STYLES ====================== */
 
-  list: { display: "flex", flexDirection: "column", gap: "20px", width: "450px" },
+const styles = {
+  page: {
+    padding: "40px",
+    minHeight: "100vh",
+    background: "linear-gradient(135deg, #89f7fe, #66a6ff)",
+  },
+
+  title: {
+    fontSize: "36px",
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: "30px",
+    color: "#0b1220",
+  },
+
+  list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    width: "100%",
+    maxWidth: "650px",
+    margin: "0 auto",
+  },
 
   teamBox: {
-    background: "#f5f5f5",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 0 8px rgba(0,0,0,0.1)",
-    cursor: "pointer",
-    position: "relative",
-  },
-
-  teamName: { fontSize: "22px", fontWeight: "bold", marginBottom: "10px" },
-
-  qrButton: {
-    padding: "8px 14px",
-    borderRadius: "6px",
-    background: "#007bff",
-    color: "white",
-    border: "none",
-    cursor: "pointer",
-    float: "right",
-  },
-
-  popup: {
-    position: "absolute",
-    top: "70px",
-    left: "0",
-    background: "white",
-    padding: "15px",
-    borderRadius: "8px",
-    boxShadow: "0 0 12px rgba(0,0,0,0.2)",
-    width: "220px",
-    zIndex: 100,
-  },
-
-  modalOverlay: {
-    position: "fixed",
-    top: 0, left: 0, right: 0, bottom: 0,
-    background: "rgba(0,0,0,0.6)",
+    background: "rgba(255,255,255,0.35)",
+    backdropFilter: "blur(20px)",
+    borderRadius: "20px",
+    padding: "25px",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
     display: "flex",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
   },
 
-  modalBox: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "12px",
-    textAlign: "center",
-    width: "300px",
+  teamName: {
+    fontSize: "22px",
+    fontWeight: "700",
   },
 
-  closeButton: {
-    marginTop: "15px",
-    padding: "8px 14px",
-    borderRadius: "6px",
-    background: "red",
+  qrButton: {
+    padding: "10px 18px",
+    borderRadius: "10px",
+    background: "#2d7dff",
     color: "white",
     border: "none",
     cursor: "pointer",
+    fontSize: "15px",
+    fontWeight: "bold",
   },
+
+  /* ===== QR Overlay Drawer ===== */
+
+  qrOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: "rgba(0,0,0,0.35)",
+    backdropFilter: "blur(6px)",
+    display: "flex",
+    justifyContent: "flex-end",
+    zIndex: 9999,
+  },
+
   qrPanel: {
-  position: "fixed",
-  top: 0,
-  right: 0,
-  height: "100vh",
-  width: "330px",
-  background: "white",
-  boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
-  padding: "20px",
-  zIndex: 9999,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  animation: "slideIn 0.3s ease-out",
-},
+    width: "380px",
+    height: "100vh",
+    background: "white",
+    padding: "25px",
+    boxShadow: "-6px 0 20px rgba(0,0,0,0.2)",
+    overflowY: "auto",
+    animation: "slideIn 0.35s ease-out",
+  },
 
-qrHeader: {
-  width: "100%",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "15px",
-},
+  qrHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "15px",
+  },
 
-closeX: {
-  background: "transparent",
-  border: "none",
-  fontSize: "24px",
-  cursor: "pointer",
-},
+  closeX: {
+    background: "transparent",
+    border: "none",
+    fontSize: "28px",
+    cursor: "pointer",
+  },
 
-qrImage: {
-  width: "260px",
-  height: "260px",
-  border: "1px solid #ddd",
-  borderRadius: "10px",
-}
+  qrImage: {
+    width: "250px",
+    height: "250px",
+    border: "1px solid #eee",
+    borderRadius: "12px",
+    display: "block",
+    margin: "0 auto",
+  },
 
+  memberSection: {
+    marginTop: "25px",
+    padding: "15px",
+    background: "#f7f9ff",
+    borderRadius: "12px",
+    border: "1px solid #e2e4ff",
+  },
+
+  memberItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "12px",
+  },
+
+  avatarCircle: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    background: "#4a65ff",
+    color: "white",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "16px",
+    fontWeight: "bold",
+  },
 };

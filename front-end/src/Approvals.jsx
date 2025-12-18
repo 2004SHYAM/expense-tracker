@@ -17,18 +17,30 @@ export default function Approvals() {
     setTeams(await res.json());
   };
 
-  const loadMembers = async (tid) => {
+ const loadMembers = async (tid) => {
+  try {
     const res = await fetch(`http://localhost:8080/api/team/${tid}`);
     const team = await res.json();
 
+    // SAME LOGIC AS APPROVALS.jsx
     const map = {};
     for (let id of team.memberIds) {
-      const u = await fetch(`http://localhost:8080/api/auth/user/${id}`);
-      const uData = await u.json();
-      map[id] = uData.fullName;
+      try {
+        const u = await fetch(`http://localhost:8080/api/auth/user/${id}`);
+        const uData = await u.json();
+        map[id] = uData.fullName || `${uData.firstName} ${uData.lastName}` || "User";
+      } catch (e) {
+        map[id] = "Unknown";
+      }
     }
+
     setMembers(map);
-  };
+  } catch (e) {
+    console.error("Error loading members", e);
+  }
+};
+
+
 
   // -----------------------------
   // Load pending approvals
@@ -64,100 +76,151 @@ export default function Approvals() {
   };
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>Approve Payments</h1>
+  <div className="ap-root">
+    <style>{`
+      /* Animated Gradient Background */
+      .ap-root {
+        min-height: 100vh;
+        padding: 120px 20px 160px;
+        background: linear-gradient(135deg, #ff7ce0, #7ea2ff, #5cf3ff);
+        background-size: 300% 300%;
+        animation: apMove 12s ease infinite;
+        font-family: "Inter", sans-serif;
+        color: #0b1220;
+      }
 
-      <select
-        style={styles.input}
-        onChange={(e) => {
-          setTeamId(e.target.value);
-          loadMembers(e.target.value);
-          loadPendingApprovals(e.target.value);
-        }}
-      >
-        <option value="">Select Team</option>
-        {teams.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.teamName}
-          </option>
-        ))}
-      </select>
+      @keyframes apMove {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
 
-      {pending.length === 0 && teamId && (
-        <p style={{ marginTop: 20, fontSize: 18 }}>No pending approvals.</p>
-      )}
+      /* Frosted Glass Panel */
+      .ap-box {
+        backdrop-filter: blur(20px) saturate(160%);
+        background: rgba(255,255,255,0.25);
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+      }
 
-      {pending.map((ex) => (
-        <div key={ex.id} style={styles.expBox}>
-          <h3>
-            {ex.description} — ₹{ex.amount}
-          </h3>
+      /* Smooth Glass Dropdown */
+      .ap-input {
+        width: 100%;
+        max-width: 320px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.4);
+        background: rgba(255,255,255,0.35);
+        backdrop-filter: blur(16px);
+        margin-bottom: 20px;
+        font-size: 15px;
+      }
 
-          {ex.pendingShares.map((sh, i) => (
-            <div key={i} style={styles.card}>
-              <p>
-                <b>{members[sh.userId] || "Loading..."}</b> needs approval
-              </p>
+      /* "Pending Approval" Expense Card */
+      .ap-exp {
+        background: rgba(255,255,255,0.4);
+        backdrop-filter: blur(12px);
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(255,255,255,0.35);
+      }
 
-              <p>Amount: ₹{sh.amount}</p>
-              <p>Method: {sh.paymentMethod}</p>
+      /* Member Approval Row */
+      .ap-card {
+        background: rgba(255,255,255,0.6);
+        backdrop-filter: blur(12px);
+        border-radius: 14px;
+        padding: 15px;
+        margin-top: 10px;
+        border: 1px solid rgba(255,255,255,0.35);
+      }
 
-              <button
-                style={styles.approveBtn}
-                onClick={() => handleAction(ex.id, sh.userId, "APPROVE")}
-              >
-                Approve
-              </button>
+      /* Buttons */
+      .ap-btn-approve {
+        background: linear-gradient(90deg, #34d058, #00b82c);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        font-weight: 700;
+        margin-right: 10px;
+        box-shadow: 0 4px 12px rgba(0,255,100,0.3);
+      }
 
-              <button
-                style={styles.rejectBtn}
-                onClick={() => handleAction(ex.id, sh.userId, "REJECT")}
-              >
-                Reject
-              </button>
-            </div>
-          ))}
-        </div>
+      .ap-btn-reject {
+        background: linear-gradient(90deg, #ff4d4d, #d60000);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+      }
+
+      .ap-title {
+        color: white;
+        text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        margin-bottom: 20px;
+      }
+    `}</style>
+
+    <h1 className="ap-title">Approve Payments</h1>
+
+    <select
+      className="ap-input"
+      onChange={(e) => {
+        setTeamId(e.target.value);
+        loadMembers(e.target.value);
+        loadPendingApprovals(e.target.value);
+      }}
+    >
+      <option value="">Select Team</option>
+      {teams.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.teamName}
+        </option>
       ))}
-    </div>
-  );
-}
+    </select>
 
-const styles = {
-  input: {
-    width: "300px",
-    padding: "10px",
-    marginBottom: "20px",
-    borderRadius: "6px",
-  },
-  expBox: {
-    background: "#f8f8f8",
-    padding: "20px",
-    borderRadius: "12px",
-    marginBottom: "20px",
-  },
-  card: {
-    background: "white",
-    padding: "15px",
-    marginTop: "10px",
-    borderRadius: "10px",
-    boxShadow: "0 0 6px rgba(0,0,0,0.1)",
-  },
-  approveBtn: {
-    padding: "8px 12px",
-    background: "green",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    marginRight: "10px",
-    cursor: "pointer",
-  },
-  rejectBtn: {
-    padding: "8px 12px",
-    background: "red",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-};
+    {pending.length === 0 && teamId && (
+      <p style={{ fontSize: 18, color: "#fff" }}>No pending approvals.</p>
+    )}
+
+    {pending.map((ex) => (
+      <div key={ex.id} className="ap-exp">
+        <h3>{ex.description} — ₹{ex.amount}</h3>
+
+        {ex.pendingShares.map((sh, i) => (
+          <div key={i} className="ap-card">
+            <p>
+              <b>{members[sh.userId] || "Loading..."}</b> needs approval
+            </p>
+
+            <p>Amount: ₹{sh.amount}</p>
+            <p>Method: {sh.paymentMethod}</p>
+
+            <button
+              className="ap-btn-approve"
+              onClick={() => handleAction(ex.id, sh.userId, "APPROVE")}
+            >
+              Approve
+            </button>
+
+            <button
+              className="ap-btn-reject"
+              onClick={() => handleAction(ex.id, sh.userId, "REJECT")}
+            >
+              Reject
+            </button>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+)};
