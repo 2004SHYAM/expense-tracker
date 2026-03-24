@@ -12,16 +12,19 @@ export default function CreateTeam() {
     const res = await fetch("http://localhost:8080/api/team/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teamName, email })
+      body: JSON.stringify({ teamName, email }),
     });
 
-    const data = await res.text();
-    const joinCode = data.match(/Join Code: (\w+)/)?.[1];
-    const base64 = data.match(/QR Base64: ([A-Za-z0-9+/=]+)/)?.[1];
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || "Failed to create team");
+    }
+
+    const data = await res.json();
 
     setResult({
-      joinCode: joinCode || "",
-      qr: base64 || "",
+      joinCode: data.joinCode || "",
+      qr: data.qrBase64 || "",
     });
   };
 
