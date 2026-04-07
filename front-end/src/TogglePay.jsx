@@ -63,7 +63,7 @@ export default function TogglePay() {
       body.proofImage = base64;
     }
 
-    await fetch("${API_BASE}/api/expenses/pay", {
+    await fetch(`${API_BASE}/api/expenses/pay`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

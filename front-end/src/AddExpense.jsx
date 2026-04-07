@@ -28,7 +28,7 @@ export default function AddExpense() {
   const [message, setMessage] = useState("");
 
   // sample avatar used in UI - keep or replace
-  const avatarImg = "/mnt/data/43aa56dc-e99c-43bf-9984-d75a5c2c72b2.png";
+  const avatarImg = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
   // load teams
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function AddExpense() {
     };
 
     try {
-      const res = await fetch("${API_BASE}/api/expenses/custom-add", {
+      const res = await fetch(`${API_BASE}/api/expenses/custom-add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

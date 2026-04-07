@@ -74,7 +74,6 @@ export default function Profile() {
   };
 
   if (loading) return <div>Loading...</div>;
-<div className={`theme-fade ${dark ? "fade-dark" : "fade-light"}`}></div>
 
   return (
     <div className="profile-page">
