@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE from "./config.js";
 
 export default function TeamSummary() {
   const [teams, setTeams] = useState([]);
@@ -23,7 +24,7 @@ export default function TeamSummary() {
   // ============================================
   const loadTeams = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+      const res = await fetch(`${API_BASE}/api/team/my-teams/${userId}`);
       const data = await res.json();
 
       const fullData = [];
@@ -31,13 +32,13 @@ export default function TeamSummary() {
       for (const team of data) {
         // 1) Expense summary
         const summaryRes = await fetch(
-          `http://localhost:8080/api/expenses/summary/${team.id}`
+          `${API_BASE}/api/expenses/summary/${team.id}`
         );
         const summaryRaw = await summaryRes.json();
 
         // 2) Fetch all members using the correct API
         const memRes = await fetch(
-          `http://localhost:8080/api/team/members/${team.id}`
+          `${API_BASE}/api/team/members/${team.id}`
         );
         const members = await memRes.json();
 

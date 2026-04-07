@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE from "./config.js";
 
 export default function Approvals() {
   const [teams, setTeams] = useState([]);
@@ -13,20 +14,20 @@ export default function Approvals() {
   }, []);
 
   const loadTeams = async () => {
-    const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+    const res = await fetch(`${API_BASE}/api/team/my-teams/${userId}`);
     setTeams(await res.json());
   };
 
  const loadMembers = async (tid) => {
   try {
-    const res = await fetch(`http://localhost:8080/api/team/${tid}`);
+    const res = await fetch(`${API_BASE}/api/team/${tid}`);
     const team = await res.json();
 
     // SAME LOGIC AS APPROVALS.jsx
     const map = {};
     for (let id of team.memberIds) {
       try {
-        const u = await fetch(`http://localhost:8080/api/auth/user/${id}`);
+        const u = await fetch(`${API_BASE}/api/auth/user/${id}`);
         const uData = await u.json();
         map[id] = uData.fullName || `${uData.firstName} ${uData.lastName}` || "User";
       } catch (e) {
@@ -47,7 +48,7 @@ export default function Approvals() {
   // -----------------------------
   const loadPendingApprovals = async (tid) => {
     const res = await fetch(
-      `http://localhost:8080/api/expenses/pending-approvals/${tid}/${userId}`
+      `${API_BASE}/api/expenses/pending-approvals/${tid}/${userId}`
     );
 
     const data = await res.json();
@@ -64,7 +65,7 @@ export default function Approvals() {
 
   const handleAction = async (expenseId, memberId, action) => {
     const res = await fetch(
-      `http://localhost:8080/api/expenses/approve-payment/${expenseId}/${memberId}?action=${action}`,
+      `${API_BASE}/api/expenses/approve-payment/${expenseId}/${memberId}?action=${action}`,
       { method: "POST" }
     );
 

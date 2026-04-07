@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import API_BASE from "./config.js";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -6,7 +7,7 @@ export default function ForgotPassword() {
 
   const submit = async () => {
     const res = await fetch(
-      "http://localhost:8080/api/auth/forgot-password?email=" + email,
+      `${API_BASE}/api/auth/forgot-password?email=${email}`,
       {
         method: "POST", // IMPORTANT
       }

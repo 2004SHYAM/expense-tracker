@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE from "./config.js";
 
 export default function Teams() {
   const [teams, setTeams] = useState([]);
@@ -13,7 +14,7 @@ export default function Teams() {
 
   const loadTeams = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+      const res = await fetch(`${API_BASE}/api/team/my-teams/${userId}`);
       const data = await res.json();
 
       if (Array.isArray(data)) setTeams(data);
@@ -28,13 +29,13 @@ export default function Teams() {
   const openQR = async (team) => {
     try {
       // FETCH MEMBERS
-      const mRes = await fetch(`http://localhost:8080/api/team/members/${team.id}`);
+      const mRes = await fetch(`${API_BASE}/api/team/members/${team.id}`);
       const users = await mRes.json();
 
       setQrTeam({
         teamName: team.teamName,
         teamId: team.id,
-        qrUrl: `http://localhost:8080/api/team/team/${team.id}/qr`,
+        qrUrl: `${API_BASE}/api/team/team/${team.id}/qr`,
         members: Array.isArray(users) ? users.map((u) => u.fullName || u.email) : []
       });
     } catch (err) {

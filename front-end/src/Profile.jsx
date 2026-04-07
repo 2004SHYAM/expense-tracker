@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import API_BASE from "./config.js";
 import { FiSun, FiMoon, FiCamera, FiSave, FiUser } from "react-icons/fi";
 
 export default function Profile() {
@@ -29,7 +30,7 @@ export default function Profile() {
   // Load user details from backend
   useEffect(() => {
     async function loadUser() {
-      const res = await fetch(`http://localhost:8080/api/auth/user/${userId}`);
+      const res = await fetch(`${API_BASE}/api/auth/user/${userId}`);
       const data = await res.json();
 
       setForm({
@@ -63,7 +64,7 @@ export default function Profile() {
   };
 
   const saveProfile = async () => {
-    const res = await fetch(`http://localhost:8080/api/auth/user/${userId}`, {
+    const res = await fetch(`${API_BASE}/api/auth/user/${userId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),

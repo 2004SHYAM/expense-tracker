@@ -1,6 +1,7 @@
 // AddExpense.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "./config.js";
 
 export default function AddExpense() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function AddExpense() {
     if (!userId) return;
     (async () => {
       try {
-        const r = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+        const r = await fetch(`${API_BASE}/api/team/my-teams/${userId}`);
         // handle non-json
         const data = await (r.ok ? r.json() : Promise.resolve([]));
         setTeams(Array.isArray(data) ? data : []);
@@ -56,7 +57,7 @@ export default function AddExpense() {
 
     (async () => {
       try {
-        const r = await fetch(`http://localhost:8080/api/team/members/${teamId}`);
+        const r = await fetch(`${API_BASE}/api/team/members/${teamId}`);
         const data = await (r.ok ? r.json() : Promise.resolve([]));
         const arr = Array.isArray(data) ? data : [];
         setMembers(arr);
@@ -130,7 +131,7 @@ export default function AddExpense() {
     };
 
     try {
-      const res = await fetch("http://localhost:8080/api/expenses/custom-add", {
+      const res = await fetch("${API_BASE}/api/expenses/custom-add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

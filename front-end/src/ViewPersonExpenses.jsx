@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE from "./config.js";
 
 export default function ViewPersonExpenses() {
   const [teams, setTeams] = useState([]);
@@ -15,7 +16,7 @@ export default function ViewPersonExpenses() {
   }, []);
 
   const loadTeams = async () => {
-    const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+    const res = await fetch(`${API_BASE}/api/team/my-teams/${userId}`);
     const data = await res.json();
     setTeams(data);
   };
@@ -24,13 +25,13 @@ export default function ViewPersonExpenses() {
     setMembers([]);
     setExpenses([]);
 
-    const res = await fetch(`http://localhost:8080/api/team/${teamId}`);
+    const res = await fetch(`${API_BASE}/api/team/${teamId}`);
     const teamData = await res.json();
 
     const list = [];
 
     for (const mId of teamData.memberIds) {
-      const uRes = await fetch(`http://localhost:8080/api/auth/user/${mId}`);
+      const uRes = await fetch(`${API_BASE}/api/auth/user/${mId}`);
       const userData = await uRes.json();
 
       if (userData && userData.firstName) {
@@ -47,7 +48,7 @@ export default function ViewPersonExpenses() {
   const loadUserExpenses = async (teamId, userId) => {
     if (!teamId || !userId) return;
     const res = await fetch(
-      `http://localhost:8080/api/expenses/team/${teamId}/user/${userId}`
+      `${API_BASE}/api/expenses/team/${teamId}/user/${userId}`
     );
     const data = await res.json();
     setExpenses(data);

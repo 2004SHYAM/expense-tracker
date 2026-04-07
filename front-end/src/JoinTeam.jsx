@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import API_BASE from "./config.js";
 
 export default function JoinTeam() {
   const [joinCode, setJoinCode] = useState("");
@@ -14,7 +15,7 @@ export default function JoinTeam() {
       return;
     }
 
-    const url = `http://localhost:8080/api/team/join?joinCode=${code}&email=${email}`;
+    const url = `${API_BASE}/api/team/join?joinCode=${code}&email=${email}`;
     const res = await fetch(url, { method: "POST" });
 
     const data = await res.text();

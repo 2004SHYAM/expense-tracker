@@ -1,12 +1,12 @@
-const API_BASE = "http://localhost:8080/api/"; // Your Spring Boot backend URL
+import API_BASE from "./config.js";
 
 export async function getExpenses() {
-  const res = await fetch(`${API_BASE}/expenses`);
+  const res = await fetch(`${API_BASE}/api/expenses`);
   return res.json();
 }
 
 export async function addExpense(expense) {
-  const res = await fetch(`${API_BASE}/expenses`, {
+  const res = await fetch(`${API_BASE}/api/expenses`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(expense),
@@ -15,11 +15,9 @@ export async function addExpense(expense) {
 }
 
 export async function createTeam(teamName, email) {
-  const response = await fetch(`${API_BASE}team/create`, {
+  const response = await fetch(`${API_BASE}/api/team/create`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ teamName, email }),
   });
 

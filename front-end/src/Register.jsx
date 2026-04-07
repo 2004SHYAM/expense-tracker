@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import API_BASE from "./config.js";
 
 export default function Register() {
   const [msg, setMsg] = useState("");
@@ -10,7 +11,7 @@ export default function Register() {
     const form = new FormData(e.target);
     const payload = Object.fromEntries(form);
 
-    const res = await fetch("http://localhost:8080/api/auth/register", {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

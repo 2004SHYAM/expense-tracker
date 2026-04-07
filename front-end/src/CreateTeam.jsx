@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import API_BASE from "./config.js";
 
 export default function CreateTeam() {
   const [teamName, setTeamName] = useState("");
@@ -9,7 +10,7 @@ export default function CreateTeam() {
   const createTeam = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:8080/api/team/create", {
+    const res = await fetch(`${API_BASE}/api/team/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teamName, email }),

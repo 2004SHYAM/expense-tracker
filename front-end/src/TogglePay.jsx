@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE from "./config.js";
 
 export default function TogglePay() {
   const [teams, setTeams] = useState([]);
@@ -19,13 +20,13 @@ export default function TogglePay() {
   }, [teamId]);
 
   const loadTeams = async () => {
-    const res = await fetch(`http://localhost:8080/api/team/my-teams/${userId}`);
+    const res = await fetch(`${API_BASE}/api/team/my-teams/${userId}`);
     setTeams(await res.json());
   };
 
   const loadMembers = async (tid) => {
   try {
-    const res = await fetch(`http://localhost:8080/api/team/members/${tid}`);
+    const res = await fetch(`${API_BASE}/api/team/members/${tid}`);
     const list = await res.json();
 
     const map = {};
@@ -41,7 +42,7 @@ export default function TogglePay() {
 
 
   const loadExpenses = async (tid) => {
-  const res = await fetch(`http://localhost:8080/api/expenses/team/${tid}`);
+  const res = await fetch(`${API_BASE}/api/expenses/team/${tid}`);
   const data = await res.json();
   setExpenses(data);
 
@@ -62,7 +63,7 @@ export default function TogglePay() {
       body.proofImage = base64;
     }
 
-    await fetch("http://localhost:8080/api/expenses/pay", {
+    await fetch("${API_BASE}/api/expenses/pay", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

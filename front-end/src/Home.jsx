@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE from "./config.js";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Users,
@@ -34,7 +35,7 @@ export default function Home() {
   // ------------ LOAD USER -------------
   useEffect(() => {
     if (!userId) return;
-    fetch(`http://localhost:8080/api/auth/user/${userId}`)
+    fetch(`${API_BASE}/api/auth/user/${userId}`)
       .then((r) => r.json())
       .then((d) => setFullName(d.fullName || "User"));
   }, [userId]);
@@ -44,7 +45,7 @@ export default function Home() {
     if (!userId) return;
     async function load() {
       const tRes = await fetch(
-        `http://localhost:8080/api/team/my-teams/${userId}`
+        `${API_BASE}/api/team/my-teams/${userId}`
       );
       const tData = await tRes.json();
       const list = Array.isArray(tData) ? tData : [];
@@ -55,14 +56,14 @@ export default function Home() {
       await Promise.all(
         list.map(async (team) => {
           const exRes = await fetch(
-            `http://localhost:8080/api/expenses/team/${team.id}`
+            `${API_BASE}/api/expenses/team/${team.id}`
           );
           const exData = await exRes.json();
           if (Array.isArray(exData)) {
             total += exData.reduce((a, b) => a + (Number(b.amount) || 0), 0);
           }
           const pRes = await fetch(
-            `http://localhost:8080/api/expenses/pending-approvals/${team.id}/${userId}`
+            `${API_BASE}/api/expenses/pending-approvals/${team.id}/${userId}`
           );
           const pData = await pRes.json();
           if (Array.isArray(pData)) pending += pData.length;
