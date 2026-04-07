@@ -109,7 +109,9 @@ public class SecurityConfig {
         // Allow frontend hosts
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "https://testing_site_quiddity.io",
+                "https://*.vercel.app"
         ));
 
         config.setAllowCredentials(true);               // allow cookies, auth headers, JWT
